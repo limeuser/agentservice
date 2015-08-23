@@ -1,5 +1,7 @@
 package service.test;
 
+import java.nio.ByteBuffer;
+
 import mjoys.util.Address;
 import mjoys.util.Logger;
 import mjoys.util.StringUtil;
@@ -11,7 +13,6 @@ import org.junit.Test;
 
 import cn.oasistech.agent.AgentProtocol;
 import cn.oasistech.agent.GetIdResponse;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.client.AgentSyncRpc;
 import cn.oasistech.util.Cfg;
 import cn.oasistech.util.Tag;
@@ -35,13 +36,13 @@ public class TestService {
     }
     
     @Test
-    public void testShell() {
+    public void testOs() {
         GetIdResponse response = syncRpc.getId(new Tag(AgentProtocol.PublicTag.servicename.name(), "shell"));
         Assert.assertNotNull(response);
         
         for (int id : response.getIds()) {
-            IdFrame frame = syncRpc.call(id, StringUtil.toBytes("cmd /c dir", "UTF-8"));
-            String echo = StringUtil.getUTF8String(frame.getBody());
+            ByteBuffer body = syncRpc.call(id, ByteBuffer.wrap(StringUtil.toBytes("cmd /c dir", "UTF-8")));
+            String echo = StringUtil.getUTF8String(body);
             logger.log(echo);
         }   
     }
@@ -51,7 +52,7 @@ public class TestService {
         GetIdResponse response = syncRpc.getId(new Tag(AgentProtocol.PublicTag.servicename.name(), "text"));
         Assert.assertNotNull(response);
         for (int id : response.getIds()) {
-            syncRpc.sendTo(id, StringUtil.toBytes("hello", "UTF-8"));
+            syncRpc.send(id, ByteBuffer.wrap(StringUtil.toBytes("hello", "UTF-8")));
         }
     }
     
@@ -60,8 +61,8 @@ public class TestService {
         GetIdResponse response = syncRpc.getId(new Tag(AgentProtocol.PublicTag.servicename.name(), "echo"));
         Assert.assertNotNull(response);
         for (int id : response.getIds()) {
-            IdFrame frame = syncRpc.call(id, StringUtil.toBytes("hello", "UTF-8"));
-            String echo = StringUtil.getUTF8String(frame.getBody());
+            ByteBuffer body = syncRpc.call(id, ByteBuffer.wrap(StringUtil.toBytes("hello", "UTF-8")));
+            String echo = StringUtil.getUTF8String(body);
             Assert.assertEquals(echo, "hello");
             logger.log("response: " + echo);
         }

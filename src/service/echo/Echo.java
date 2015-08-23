@@ -1,10 +1,14 @@
 package service.echo;
 
+import java.nio.ByteBuffer;
+
+import mjoys.frame.TLV;
+import mjoys.frame.TV;
+import mjoys.io.ByteBufferInputStream;
 import mjoys.util.Address;
 import mjoys.util.Logger;
 import mjoys.util.StringUtil;
 import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.client.AgentAsynRpc;
 import cn.oasistech.agent.client.AgentRpcHandler;
 import cn.oasistech.util.Tag;
@@ -27,15 +31,16 @@ public class Echo {
         agentAsynRpc.stop();
     }
     
-    public class EchoHandler implements AgentRpcHandler {
+    public class EchoHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
-        public void handle(AgentAsynRpc rpc, IdFrame frame) {
-            if (frame.getId() != AgentProtocol.PublicService.Agent.id) {
-                String text = StringUtil.getUTF8String(frame.getBody());
-                rpc.sendTo(frame.getId(), StringUtil.toBytes(text, "UTF-8"));
+        public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> frame) {
+            if (frame.tag != AgentProtocol.PublicService.Agent.id) {
+                String text = StringUtil.getUTF8String(frame.body);
+                rpc.send(frame.tag, frame.body);
                 logger.log(text);
             } else {
-                logger.log("agent response: %s", rpc.getSerializer().decodeResponse(frame.getBody()).toString());
+            	TV<ByteBuffer> responseFrame = AgentProtocol.parseMsgFrame(frame.body);
+                logger.log("agent response: %s", AgentProtocol.decodeAgentResponse(AgentProtocol.getMsgType(responseFrame.tag), new ByteBufferInputStream(responseFrame.body), rpc.getSerializer()));
             }
         }
     }

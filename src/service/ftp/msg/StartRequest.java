@@ -1,6 +1,6 @@
-package service.ftp;
+package service.ftp.msg;
 
-public class StartCmd {
+public class StartRequest {
     public String getPath() {
         return path;
     }

@@ -1,6 +1,6 @@
-package service.ftp;
+package service.ftp.msg;
 
-public class EndCmd {
+public class EndRequest {
     private String address;
 
     public String getAddress() {

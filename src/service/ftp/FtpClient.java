@@ -4,34 +4,31 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import mjoys.socket.tcp.client.SocketClient;
 import mjoys.util.Address;
 import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
-import mjoys.util.Serializer;
-import mjoys.util.StringUtil;
-import mjoys.util.TLVFrame;
+import service.ftp.msg.EndRequest;
+import service.ftp.msg.EndResponse;
+import service.ftp.msg.MsgType;
+import service.ftp.msg.StartRequest;
+import service.ftp.msg.StartResponse;
 import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.GetIdRequest;
 import cn.oasistech.agent.GetIdResponse;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.client.AgentSyncRpc;
 import cn.oasistech.util.Tag;
 
 public class FtpClient {
     private int ftpAgentId;
     private SocketClient socket;
-    private Serializer serializer;
     private AgentSyncRpc agentSyncRpc;
     
     private byte[] buffer = new byte[ByteUnit.MB];
     
     private static final Logger logger = new Logger().addPrinter(System.out);
     
-    public void start(Address ftpAddress, Address agentAddress) {
+    public void connect(Address ftpAddress, Address agentAddress) {
         socket = new SocketClient();
         if (socket.connect(ftpAddress) == false) {
             return;
@@ -41,12 +38,8 @@ public class FtpClient {
         if (false == agentSyncRpc.start(agentAddress)) {
             return;
         }
-        
-        GetIdRequest request = new GetIdRequest();
-        List<Tag> tags = new ArrayList<Tag>();
-        tags.add(new Tag(AgentProtocol.PublicTag.servicename.name(), "ftp"));
-        request.setTags(tags);
-        GetIdResponse response = agentSyncRpc.getId(tags);
+
+        GetIdResponse response = agentSyncRpc.getId(new Tag(AgentProtocol.PublicTag.servicename.name(), "ftp"));
         if (response == null) {
             logger.log("can't find ftp service");
             return;
@@ -59,9 +52,8 @@ public class FtpClient {
         
         ftpAgentId = response.getIds().get(0);
     }
-    
 
-    public void transfer(String dst, String src) {
+    public void upload(String dst, String src) {
         if (ftpAgentId <= 0) {
             logger.log("disconnected");
             return;
@@ -86,63 +78,22 @@ public class FtpClient {
     }
     
     private boolean start(String dst) {
-        StartCmd cmd = new StartCmd();
-        cmd.setConnectionAddress(this.socket.getLocalAddress().toString());
-        cmd.setName(dst);
-        cmd.setPath(dst);
-        byte[] data = serializer.encode(cmd);
-        TLVFrame frame = new TLVFrame();
-        frame.setType(MsgType.start.ordinal());
-        frame.setLength(data.length);
-        frame.setValue(data);
-        agentSyncRpc.sendTo(ftpAgentId, data);
+        StartRequest request = new StartRequest();
+        request.setConnectionAddress(this.socket.getLocalAddress().toString());
+        request.setName(dst);
+        request.setPath(dst);
         
-        IdFrame response = agentSyncRpc.recv();
-        if (response == null) {
-            return false;
-        }
-        
-        List<TLVFrame> frames = TLVFrame.parseTLVFrames(response.getBody(), response.getBodyLength());
-        if (frames.size() != 1) {
-            return false;
-        }
-        
-        frame = frames.get(0);
-        String error = StringUtil.getUTF8String(frame.getValue());
-        if (StringUtil.isNotEmpty(error)) {
-            logger.log("can't send file: dst=%s, reason=%s", dst, error);
-            return false;
-        }
-        
-        return true;
+        StartResponse response = agentSyncRpc.call(ftpAgentId, MsgType.Start.ordinal(), request, StartResponse.class);
+        return response != null && response.error == Error.Success;
     }
     
     private boolean done(String dst) {
         // done
-        EndCmd cmd = new EndCmd();
-        cmd.setAddress(this.socket.getLocalAddress().toString());
+        EndRequest request = new EndRequest();
+        request.setAddress(this.socket.getLocalAddress().toString());
         
-        byte[] data = serializer.encode(cmd);
-        TLVFrame frame = new TLVFrame();
-        frame.setType(MsgType.end.ordinal());
-        frame.setLength(data.length);
-        frame.setValue(data);
-        agentSyncRpc.sendTo(ftpAgentId, data);
-        IdFrame response = agentSyncRpc.recv();
-        
-        List<TLVFrame> frames = TLVFrame.parseTLVFrames(response.getBody(), response.getBodyLength());
-        if (frames == null || frames.size() != 1) {
-            return false;
-        }
-        
-        frame = frames.get(0);
-        String error = StringUtil.getUTF8String(frame.getValue());
-        if (StringUtil.isNotEmpty(error)) {
-            logger.log("can't send file: dst=%s, reason=%s", dst, error);
-            return false;
-        }
-        
-        return true;
+        EndResponse response = agentSyncRpc.call(ftpAgentId, MsgType.End.ordinal(), request, EndResponse.class);
+        return response != null && response.error == Error.Success;
     }
     
     private boolean send(File file) {

@@ -1,14 +1,21 @@
 package service.ftp;
 
+import java.nio.ByteBuffer;
+
+import mjoys.frame.ByteBufferParser;
+import mjoys.frame.TLV;
+import mjoys.frame.TV;
+import mjoys.io.ByteBufferInputStream;
+import mjoys.io.Serializer;
+import mjoys.io.SerializerException;
 import mjoys.socket.tcp.server.SocketServer;
 import mjoys.util.Address;
 import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
-import mjoys.util.Serializer;
-import mjoys.util.StringUtil;
-import mjoys.util.TLVFrame;
+import service.ftp.msg.EndRequest;
+import service.ftp.msg.MsgType;
+import service.ftp.msg.StartRequest;
 import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.IdFrame;
 import cn.oasistech.agent.Response;
 import cn.oasistech.agent.client.AgentAsynRpc;
 import cn.oasistech.agent.client.AgentRpcHandler;
@@ -42,47 +49,47 @@ public class FtpServer {
         agentAsynRpc.setTag(new Tag(AgentProtocol.PublicTag.servicename.name(), ServiceName));
     }
     
-    class FrameHandler implements AgentRpcHandler {
+    class FrameHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
-        public void handle(AgentAsynRpc rpc, IdFrame idFrame) {
-            if (idFrame.getId() != AgentProtocol.PublicService.Agent.id) {
-                TLVFrame tlv = TLVFrame.parseTLVFrame(idFrame.getBody(), idFrame.getBodyLength());
-                if (tlv == null) {
+        public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> idFrame) {
+            if (idFrame.tag != AgentProtocol.PublicService.Agent.id) {
+                TV<ByteBuffer> cmdFrame = ByteBufferParser.parseTV(idFrame.body);
+                if (cmdFrame == null) {
                     logger.log("frame is null");
                     return;
                 }
-                
-                String error = processCmd(rpc, tlv);
-                byte[] data = StringUtil.toBytes(error, "UTF-8");
-                TLVFrame responseFrame = new TLVFrame();
-                responseFrame.setType(tlv.getType());
-                responseFrame.setLength(data.length);
-                responseFrame.setValue(data);
-                rpc.sendTo(idFrame.getId(), data, 0, data.length);
+                try {
+                	String error = processCmd(rpc, cmdFrame);
+                	rpc.sendMsg(idFrame.tag, cmdFrame.tag, error);
+                } catch(Exception e) {
+                	logger.log("process cmd exception:", e);
+                }
             } else {
                 processAgentMsg(idFrame);
             }
         }
         
-        private void processAgentMsg(IdFrame idFrame) {
-            Response response = agentAsynRpc.getSerializer().decodeResponse(idFrame.getBody());
-            if (response.getType().equals(AgentProtocol.MsgType.SetTag)) {
+        private void processAgentMsg(TLV<ByteBuffer> idFrame) {
+        	TV<ByteBuffer> responseFrame = AgentProtocol.parseMsgFrame(idFrame.body);
+        	AgentProtocol.MsgType msgType = AgentProtocol.getMsgType(responseFrame.tag);
+            Response response = AgentProtocol.decodeAgentResponse(msgType, new ByteBufferInputStream(responseFrame.body), serializer);
+            if (msgType == AgentProtocol.MsgType.SetTag || response != null && response.getError() == AgentProtocol.Error.Success) {
                 logger.log("registered");
                 registered = true;
             }
         }
         
-        private String processCmd(AgentAsynRpc rpc, TLVFrame frame) {
+        private String processCmd(AgentAsynRpc rpc, TV<ByteBuffer> frame) throws SerializerException {
             if (!registered) {
                 return "not registered";
             }
             
-            int type = frame.getType();
+            int type = frame.tag;
             FileContext ctx = null;
             StringBuilder error = new StringBuilder("");
             
-            if (type == MsgType.start.ordinal()) {
-                StartCmd cmd = (StartCmd) serializer.decode(frame.getValue()); 
+            if (type == MsgType.Start.ordinal()) {
+                StartRequest cmd = (StartRequest) serializer.decode(new ByteBufferInputStream(frame.body), StartRequest.class); 
                 ctx = FileContext.newFileContext(cmd.getName(), error);
                 if (ctx == null) {
                     return error.toString();
@@ -90,8 +97,8 @@ public class FtpServer {
                 
                 server.setClientContext(cmd.getConnectionAddress(), ctx);
             }
-            else if (type == MsgType.end.ordinal()) {
-                EndCmd cmd = (EndCmd) serializer.decode(frame.getValue());
+            else if (type == MsgType.End.ordinal()) {
+                EndRequest cmd = (EndRequest) serializer.decode(new ByteBufferInputStream(frame.body), EndRequest.class);
                 ctx = server.getContext(cmd.getAddress());
                 
                 if (ctx == null) {
