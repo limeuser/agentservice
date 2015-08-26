@@ -1,29 +1,31 @@
-package service.ftp;
+package mjoys.agent.service.ftp;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import mjoys.agent.Agent;
+import mjoys.agent.Response;
+import mjoys.agent.client.AgentAsynRpc;
+import mjoys.agent.client.AgentRpcHandler;
+import mjoys.agent.service.ftp.msg.EndRequest;
+import mjoys.agent.service.ftp.msg.MsgType;
+import mjoys.agent.service.ftp.msg.StartRequest;
+import mjoys.agent.service.ftp.msg.FtpResponse;
+import mjoys.agent.util.Tag;
 import mjoys.frame.ByteBufferParser;
 import mjoys.frame.TLV;
 import mjoys.frame.TV;
 import mjoys.io.ByteBufferInputStream;
-import mjoys.io.Serializer;
 import mjoys.io.SerializerException;
+import mjoys.socket.tcp.server.ClientConnection;
 import mjoys.socket.tcp.server.SocketServer;
 import mjoys.util.Address;
 import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
-import service.ftp.msg.EndRequest;
-import service.ftp.msg.MsgType;
-import service.ftp.msg.StartRequest;
-import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.Response;
-import cn.oasistech.agent.client.AgentAsynRpc;
-import cn.oasistech.agent.client.AgentRpcHandler;
-import cn.oasistech.util.Tag;
+import mjoys.util.TimeUnit;
 
 public class FtpServer {
     private boolean registered;
-    private Serializer serializer;
     private AgentAsynRpc agentAsynRpc;
     private SocketServer<FileContext> server;
     
@@ -36,6 +38,7 @@ public class FtpServer {
         
         server = new SocketServer<FileContext>();
         if (false == server.start(tcpPort, new FileHandler())) {
+        	logger.log("start socket server failed");
             return;
         }
         
@@ -46,13 +49,13 @@ public class FtpServer {
             return;
         }
         
-        agentAsynRpc.setTag(new Tag(AgentProtocol.PublicTag.servicename.name(), ServiceName));
+        agentAsynRpc.setTag(new Tag(Agent.PublicTag.servicename.name(), ServiceName));
     }
     
     class FrameHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
         public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> idFrame) {
-            if (idFrame.tag != AgentProtocol.PublicService.Agent.id) {
+            if (idFrame.tag != Agent.PublicService.Agent.id) {
                 TV<ByteBuffer> cmdFrame = ByteBufferParser.parseTV(idFrame.body);
                 if (cmdFrame == null) {
                     logger.log("frame is null");
@@ -60,20 +63,22 @@ public class FtpServer {
                 }
                 try {
                 	String error = processCmd(rpc, cmdFrame);
-                	rpc.sendMsg(idFrame.tag, cmdFrame.tag, error);
+                	FtpResponse response = new FtpResponse();
+                	response.error = error;
+                	rpc.sendMsg(idFrame.tag, cmdFrame.tag, response);
                 } catch(Exception e) {
                 	logger.log("process cmd exception:", e);
                 }
             } else {
-                processAgentMsg(idFrame);
+                processAgentMsg(idFrame, rpc);
             }
         }
         
-        private void processAgentMsg(TLV<ByteBuffer> idFrame) {
-        	TV<ByteBuffer> responseFrame = AgentProtocol.parseMsgFrame(idFrame.body);
-        	AgentProtocol.MsgType msgType = AgentProtocol.getMsgType(responseFrame.tag);
-            Response response = AgentProtocol.decodeAgentResponse(msgType, new ByteBufferInputStream(responseFrame.body), serializer);
-            if (msgType == AgentProtocol.MsgType.SetTag || response != null && response.getError() == AgentProtocol.Error.Success) {
+        private void processAgentMsg(TLV<ByteBuffer> idFrame, AgentAsynRpc rpc) {
+        	TV<ByteBuffer> responseFrame = Agent.parseMsgFrame(idFrame.body);
+        	Agent.MsgType msgType = Agent.getMsgType(responseFrame.tag);
+            Response response = Agent.decodeAgentResponse(msgType, new ByteBufferInputStream(responseFrame.body), rpc.getSerializer());
+            if (msgType == Agent.MsgType.SetTag || response != null && response.getError() == Agent.Error.Success) {
                 logger.log("registered");
                 registered = true;
             }
@@ -89,7 +94,7 @@ public class FtpServer {
             StringBuilder error = new StringBuilder("");
             
             if (type == MsgType.Start.ordinal()) {
-                StartRequest cmd = (StartRequest) serializer.decode(new ByteBufferInputStream(frame.body), StartRequest.class); 
+                StartRequest cmd = (StartRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), StartRequest.class); 
                 ctx = FileContext.newFileContext(cmd.getName(), error);
                 if (ctx == null) {
                     return error.toString();
@@ -98,20 +103,26 @@ public class FtpServer {
                 server.setClientContext(cmd.getConnectionAddress(), ctx);
             }
             else if (type == MsgType.End.ordinal()) {
-                EndRequest cmd = (EndRequest) serializer.decode(new ByteBufferInputStream(frame.body), EndRequest.class);
-                ctx = server.getContext(cmd.getAddress());
+                EndRequest cmd = (EndRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), EndRequest.class);
+                ClientConnection<FileContext> conn= server.getConnection(cmd.getAddress());
+                ctx = conn.getContext();
                 
                 if (ctx == null) {
                     error.append("can't find connection: address=" + cmd.getAddress());
                     return error.toString();
                 }
                 
-                ctx.done();
-                server.disconnect(cmd.getAddress());
-                
-                if (ctx.done() == false) {
-                    error.append("close file error: fname=").append(ctx.getFile().getAbsolutePath());
-                    return error.toString();
+                try {
+	                // received all file data
+                	ctx.setExpectedRecvLength(cmd.getLength());
+	                if (cmd.getLength() == ctx.getRecvLength()) {
+	                	conn.getSocket().close();
+	                } else {
+	                	conn.getSocket().setSoTimeout(5 * TimeUnit.Second);
+	                }
+                }
+                catch (IOException e) {
+                	logger.log("socket io exception", e);
                 }
             }
             

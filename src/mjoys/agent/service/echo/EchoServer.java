@@ -1,19 +1,19 @@
-package service.echo;
+package mjoys.agent.service.echo;
 
 import java.nio.ByteBuffer;
 
+import mjoys.agent.Agent;
+import mjoys.agent.client.AgentAsynRpc;
+import mjoys.agent.client.AgentRpcHandler;
+import mjoys.agent.util.Tag;
 import mjoys.frame.TLV;
 import mjoys.frame.TV;
 import mjoys.io.ByteBufferInputStream;
 import mjoys.util.Address;
 import mjoys.util.Logger;
 import mjoys.util.StringUtil;
-import cn.oasistech.agent.AgentProtocol;
-import cn.oasistech.agent.client.AgentAsynRpc;
-import cn.oasistech.agent.client.AgentRpcHandler;
-import cn.oasistech.util.Tag;
 
-public class Echo {
+public class EchoServer {
     private AgentAsynRpc agentAsynRpc;
     private final static Logger logger = new Logger().addPrinter(System.out);
     
@@ -22,7 +22,7 @@ public class Echo {
         if (agentAsynRpc.start(address, new EchoHandler()) == false) {
             return false;
         }
-        agentAsynRpc.setTag(new Tag(AgentProtocol.PublicTag.servicename.name(), "echo"));
+        agentAsynRpc.setTag(new Tag(Agent.PublicTag.servicename.name(), "echo"));
         
         return true;
     }
@@ -34,13 +34,13 @@ public class Echo {
     public class EchoHandler implements AgentRpcHandler<ByteBuffer> {
         @Override
         public void handle(AgentAsynRpc rpc, TLV<ByteBuffer> frame) {
-            if (frame.tag != AgentProtocol.PublicService.Agent.id) {
+            if (frame.tag != Agent.PublicService.Agent.id) {
                 String text = StringUtil.getUTF8String(frame.body);
                 rpc.send(frame.tag, frame.body);
-                logger.log(text);
+                logger.log("echo server recv: %d:%s", frame.tag, text);
             } else {
-            	TV<ByteBuffer> responseFrame = AgentProtocol.parseMsgFrame(frame.body);
-                logger.log("agent response: %s", AgentProtocol.decodeAgentResponse(AgentProtocol.getMsgType(responseFrame.tag), new ByteBufferInputStream(responseFrame.body), rpc.getSerializer()));
+            	TV<ByteBuffer> responseFrame = Agent.parseMsgFrame(frame.body);
+                logger.log("echo server recv agent response: %s", Agent.decodeAgentResponse(Agent.getMsgType(responseFrame.tag), new ByteBufferInputStream(responseFrame.body), rpc.getSerializer()));
             }
         }
     }

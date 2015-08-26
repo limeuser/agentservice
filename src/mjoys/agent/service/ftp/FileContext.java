@@ -1,15 +1,20 @@
-package service.ftp;
+package mjoys.agent.service.ftp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import mjoys.util.Logger;
+
 public class FileContext {
     private File file;
     private FileOutputStream out;
-    private int dataLength = 0;
+    private int bufferWriteIndex = 0;
+    private int recvLength = 0;
+    private int expectedRecvLength = 0;
     private byte[] buffer = new byte[FtpServer.BufferSize];
+    private static final Logger logger = new Logger().addPrinter(System.out);
     
     private FileContext() {}
     public final static FileContext newFileContext(String fname, StringBuilder error) {
@@ -26,16 +31,24 @@ public class FileContext {
             error.append("file disappered:" + fname);
             return null;
         }
-        
+
         return ctx;
+    }
+    
+    public void read(int length) {
+    	this.bufferWriteIndex += length;
+    	this.recvLength += length;
+    	logger.log("read data:%d", length);
     }
     
     public boolean flush() {
         try {
-            out.write(buffer, 0, dataLength);
-            this.dataLength = 0;
+            out.write(buffer, 0, bufferWriteIndex);
+            logger.log("write data:%s", bufferWriteIndex);
+            this.bufferWriteIndex = 0;
             return true;
         } catch (IOException e) {
+        	logger.log("write data exception", e);
             return false;
         }
     }
@@ -46,15 +59,26 @@ public class FileContext {
                 this.out.close();
                 return false;
             }
-            this.out.close();
-            return true;
+            if (expectedRecvLength <= 0) {
+            	logger.log("don't knowen length when done");
+            	return false;
+            }
+            	
+            if (recvLength == expectedRecvLength) {
+            	this.out.close();
+            	logger.log("recv file success");
+            	return true;
+            }
+            
+            return false;
         } catch (IOException e) {
+        	logger.log("close file output stream exception", e);
             return false;
         }
     }
     
     public int getRemainingSize() {
-        return buffer.length - dataLength;
+        return buffer.length - bufferWriteIndex;
     }
     
     public File getFile() {
@@ -70,15 +94,21 @@ public class FileContext {
         this.out = out;
     }
     public int getDataLength() {
-        return dataLength;
+        return bufferWriteIndex;
     }
     public void setDataLength(int dataLength) {
-        this.dataLength = dataLength;
+        this.bufferWriteIndex = dataLength;
     }
     public byte[] getBuffer() {
         return buffer;
     }
     public void setBuffer(byte[] buffer) {
         this.buffer = buffer;
+    }
+    public int getRecvLength() {
+    	return this.recvLength;
+    }
+    public void setExpectedRecvLength(int length) {
+    	this.expectedRecvLength = length;
     }
 }

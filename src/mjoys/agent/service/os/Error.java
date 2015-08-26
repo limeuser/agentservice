@@ -1,4 +1,4 @@
-package service.os;
+package mjoys.agent.service.os;
 
 public enum Error {
 	Success,

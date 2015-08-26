@@ -1,22 +1,19 @@
-package service.ftp;
+package mjoys.agent.service.ftp;
 
 import java.io.IOException;
 
 import mjoys.socket.tcp.server.ClientConnection;
 import mjoys.socket.tcp.server.ClientConnectionHandler;
+import mjoys.util.Logger;
 
 public class FileHandler implements ClientConnectionHandler<FileContext> {
+	private static final Logger logger = new Logger().addPrinter(System.out);
     @Override
     public int handle(ClientConnection<FileContext> connection) {
-        try {
-            return read(connection);
-        } catch (IOException e) {
-            return -1;
-        }
-    }
-    
-    private int read(ClientConnection<FileContext> connection) throws IOException {
         FileContext ctx = connection.getContext();
+        if (ctx == null) {
+        	return 0;
+        }
         byte[] buffer = ctx.getBuffer();
         
         if (ctx.getRemainingSize() == 0) {
@@ -25,6 +22,13 @@ public class FileHandler implements ClientConnectionHandler<FileContext> {
             }
         }
         
-        return connection.getSocket().getInputStream().read(buffer, ctx.getDataLength(), ctx.getRemainingSize());
+        try {
+        	int length = connection.getSocket().getInputStream().read(buffer, ctx.getDataLength(), ctx.getRemainingSize());
+        	ctx.read(length);
+        	return length;
+        } catch (IOException e) {
+        	ctx.done();
+        	return -1;
+        }
     }
 }

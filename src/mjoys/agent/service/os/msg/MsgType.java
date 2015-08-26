@@ -1,4 +1,4 @@
-package service.os.msg;
+package mjoys.agent.service.os.msg;
 
 public enum MsgType {
 	AllocatePort,

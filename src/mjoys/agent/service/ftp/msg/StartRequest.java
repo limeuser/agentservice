@@ -1,4 +1,4 @@
-package service.ftp.msg;
+package mjoys.agent.service.ftp.msg;
 
 public class StartRequest {
     public String getPath() {
