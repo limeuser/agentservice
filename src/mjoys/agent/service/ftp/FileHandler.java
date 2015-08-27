@@ -4,10 +4,8 @@ import java.io.IOException;
 
 import mjoys.socket.tcp.server.ClientConnection;
 import mjoys.socket.tcp.server.ClientConnectionHandler;
-import mjoys.util.Logger;
 
 public class FileHandler implements ClientConnectionHandler<FileContext> {
-	private static final Logger logger = new Logger().addPrinter(System.out);
     @Override
     public int handle(ClientConnection<FileContext> connection) {
         FileContext ctx = connection.getContext();

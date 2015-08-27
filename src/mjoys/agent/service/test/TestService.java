@@ -18,7 +18,7 @@ import mjoys.agent.service.os.OSClient;
 import mjoys.agent.service.os.OSServer;
 import mjoys.agent.service.text.TextClient;
 import mjoys.agent.service.text.TextServer;
-import mjoys.agent.service.util.Cfg;
+import mjoys.agent.util.AgentCfg;
 import mjoys.agent.util.Tag;
 import mjoys.util.Address;
 import mjoys.util.Logger;
@@ -102,8 +102,8 @@ public class TestService {
     	FtpClient client = new FtpClient();
     	client.connect(Address.parse("tcp://127.0.0.1:" + ftpPort), AgentAddress);
 
-    	String dstPath = PathUtil.combine(Cfg.instance.getRoot(), "ftp", "dst");
-    	String srcPath = PathUtil.combine(Cfg.instance.getRoot(), "ftp", "src");
+    	String dstPath = PathUtil.combine(AgentCfg.instance.getRoot(), "ftp", "dst");
+    	String srcPath = PathUtil.combine(AgentCfg.instance.getRoot(), "ftp", "src");
     	
     	// create file
     	File dstDir = new File(dstPath);
