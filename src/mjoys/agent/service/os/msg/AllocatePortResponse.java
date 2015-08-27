@@ -1,6 +1,5 @@
 package mjoys.agent.service.os.msg;
 
-import mjoys.agent.service.os.Error;
 import mjoys.util.Address;
 import mjoys.util.Formater;
 

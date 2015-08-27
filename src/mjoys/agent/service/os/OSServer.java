@@ -10,6 +10,7 @@ import mjoys.agent.Response;
 import mjoys.agent.client.AgentAsynRpc;
 import mjoys.agent.client.AgentRpcHandler;
 import mjoys.agent.service.os.msg.*;
+import mjoys.agent.service.os.msg.Error;
 import mjoys.agent.util.Tag;
 import mjoys.frame.TLV;
 import mjoys.frame.TV;

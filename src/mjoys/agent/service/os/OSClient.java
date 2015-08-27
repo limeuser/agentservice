@@ -3,6 +3,7 @@ package mjoys.agent.service.os;
 import mjoys.agent.client.AgentSyncRpc;
 import mjoys.agent.service.os.msg.AllocatePortRequest;
 import mjoys.agent.service.os.msg.AllocatePortResponse;
+import mjoys.agent.service.os.msg.Error;
 import mjoys.agent.service.os.msg.FreePortRequest;
 import mjoys.agent.service.os.msg.FreePortResponse;
 import mjoys.agent.service.os.msg.MsgType;
