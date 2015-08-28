@@ -4,6 +4,7 @@ import mjoys.agent.client.AgentSyncRpc;
 import mjoys.agent.service.os.msg.*;
 import mjoys.util.Address;
 import mjoys.util.Logger;
+import mjoys.util.StringUtil;
 
 public class OSClient {
 	private AgentSyncRpc rpc;
@@ -57,7 +58,7 @@ public class OSClient {
 		
 		RunTaskResponse response = this.rpc.call(serviceId, MsgType.RunTask.ordinal(), request, RunTaskResponse.class);
 		if (response == null || !response.error.isEmpty()) {
-			logger.log("run task failed: %s", request.toString());
+			logger.log("run task failed: %s, error:%s", request.toString());
 			return -1;
 		} else {
 			logger.log("run task success: %s", request.toString());

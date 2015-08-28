@@ -114,6 +114,7 @@ public class OSServer {
 			String jobHome = System.getenv("$NETPIPE_HOME");
 			if (jobHome == null || jobHome.isEmpty()) {
 				response.error = "can't get job home directory";
+				logger.log(response.error);
 				return response;
 			}
 			

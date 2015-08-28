@@ -41,7 +41,7 @@ public class Tester {
     	syncAgentRpc.start(AgentAddress);
     }
     
-    //@Test
+    @Test
     public void testOs() throws InterruptedException {
     	OSServer server = new OSServer();
     	server.start(AgentAddress);
@@ -58,6 +58,9 @@ public class Tester {
             
             boolean success = client.freePort(id, Address.Protocol.Tcp, port);
             Assert.assertTrue(success);
+            
+            int pid = client.runTask(id, "wordcount", "Count", 2);
+            Assert.assertTrue(pid >= 0);
         }
         
         server.stop();
@@ -93,7 +96,7 @@ public class Tester {
         }
     }
     
-    @Test
+    //@Test
     public void testFtp() throws InterruptedException, IOException {
     	int ftpPort = 6000;
     	FtpServer server = new FtpServer();
