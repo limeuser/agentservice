@@ -112,7 +112,7 @@ public class OSServer {
 		private RunTaskResponse runTask(RunTaskRequest request) {
 			RunTaskResponse response = new RunTaskResponse();
 			
-			String result = SystemUtil.run(String.format("/usr/bin/bash runtask.sh %s %s %d", request.jobName, request.taskName, request.taskId));
+			String result = SystemUtil.run(String.format("/bin/bash runtask.sh %s %s %d", request.jobName, request.taskName, request.taskId));
 			
 			response.pid = SystemUtil.getPidByJps(request.taskName + "Main");
 			response.error = "";
