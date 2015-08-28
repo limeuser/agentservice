@@ -7,12 +7,6 @@ public class StartRequest {
     public void setPath(String path) {
         this.path = path;
     }
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
     public String getConnectionAddress() {
         return connectionAddress;
     }
@@ -20,6 +14,5 @@ public class StartRequest {
         this.connectionAddress = connectionAddress;
     }
     private String path;
-    private String name;
     private String connectionAddress;
 }

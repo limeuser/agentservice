@@ -23,12 +23,13 @@ import mjoys.agent.util.Tag;
 import mjoys.util.Address;
 import mjoys.util.Logger;
 import mjoys.util.PathUtil;
+import mjoys.util.SystemUtil;
 import mjoys.util.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TestService {
+public class Tester {
 	private static AgentServer agentServer = new AgentNettyServer();
     private static AgentSyncRpc syncAgentRpc = new AgentSyncRpc();
     private final static Address AgentAddress = Address.parse("tcp://127.0.0.1:6500");
@@ -99,8 +100,7 @@ public class TestService {
     	server.start(ftpPort, AgentAddress);
     	Thread.sleep(500);
     	
-    	FtpClient client = new FtpClient();
-    	client.connect(Address.parse("tcp://127.0.0.1:" + ftpPort), AgentAddress);
+    	FtpClient client = new FtpClient(Address.parse("tcp://127.0.0.1:" + ftpPort), AgentAddress);
 
     	String dstPath = PathUtil.combine(AgentCfg.instance.getRoot(), "ftp", "dst");
     	String srcPath = PathUtil.combine(AgentCfg.instance.getRoot(), "ftp", "src");
@@ -138,7 +138,7 @@ public class TestService {
     	
     	dstFile = new File(dstDir, fileName);
     	
-    	Thread.sleep(10 * TimeUnit.Second);
+    	Thread.sleep(2 * TimeUnit.Second);
     	
     	Assert.assertTrue(dstFile.exists());
     	Assert.assertTrue(srcFile.length() == dstFile.length());

@@ -18,7 +18,9 @@ import mjoys.io.ByteBufferInputStream;
 import mjoys.io.SerializerException;
 import mjoys.util.Address;
 import mjoys.util.Logger;
+import mjoys.util.PathUtil;
 import mjoys.util.StringUtil;
+import mjoys.util.SystemUtil;
 
 public class OSServer {
 	private AgentAsynRpc rpc;
@@ -81,6 +83,8 @@ public class OSServer {
 				break;
 			case Run:
 				break;
+			case RunTask:
+				rpc.sendMsg(requester, msgType.ordinal(), runTask(rpc.getSerializer().decode(new ByteBufferInputStream(request.body), RunTaskRequest.class)));
 			default:
 				break;
 			}
@@ -103,6 +107,22 @@ public class OSServer {
 			idleTcpPort.add(request.port);
 			logger.log("free tcp port:%d", request.port);
 			return new FreePortResponse();
+		}
+		
+		private RunTaskResponse runTask(RunTaskRequest request) {
+			RunTaskResponse response = new RunTaskResponse();
+			String jobHome = System.getenv("$NETPIPE_HOME");
+			if (jobHome == null || jobHome.isEmpty()) {
+				response.error = "can't get job home directory";
+				return response;
+			}
+			
+			String jarPath = PathUtil.combine(jobHome, "jobs", request.jobName + ".jar");
+			SystemUtil.run(String.format("java -jar %s %d", jarPath, request.taskId));
+			
+			response.pid = SystemUtil.getPidByJps(request.taskName + "Main");
+			response.error = "";
+			return response;
 		}
 	}
 }

@@ -1,12 +1,8 @@
 package mjoys.agent.service.os;
 
 import mjoys.agent.client.AgentSyncRpc;
-import mjoys.agent.service.os.msg.AllocatePortRequest;
-import mjoys.agent.service.os.msg.AllocatePortResponse;
+import mjoys.agent.service.os.msg.*;
 import mjoys.agent.service.os.msg.Error;
-import mjoys.agent.service.os.msg.FreePortRequest;
-import mjoys.agent.service.os.msg.FreePortResponse;
-import mjoys.agent.service.os.msg.MsgType;
 import mjoys.util.Address;
 import mjoys.util.Logger;
 
@@ -54,7 +50,19 @@ public class OSClient {
 		return "";
 	}
 	
-	public String runTask(int serviceId, String jobName, String taskName) {
-		return "";
+	public int runTask(int serviceId, String jobName, String taskName, int taskId) {
+		RunTaskRequest request = new RunTaskRequest();
+		request.jobName = jobName;
+		request.taskName = taskName;
+		request.taskId = taskId;
+		
+		RunTaskResponse response = this.rpc.call(serviceId, MsgType.RunTask.ordinal(), request, RunTaskResponse.class);
+		if (response == null || !response.error.isEmpty()) {
+			logger.log("run task failed: %s", request.toString());
+			return -1;
+		} else {
+			logger.log("run task success: %s", request.toString());
+			return response.pid;
+		}
 	}
 }

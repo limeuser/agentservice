@@ -5,4 +5,5 @@ public enum MsgType {
 	FreePort,
 	Kill,
 	Run,
+	RunTask,
 }

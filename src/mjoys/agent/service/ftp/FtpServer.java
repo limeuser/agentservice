@@ -22,6 +22,7 @@ import mjoys.socket.tcp.server.SocketServer;
 import mjoys.util.Address;
 import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
+import mjoys.util.PathUtil;
 import mjoys.util.TimeUnit;
 
 public class FtpServer {
@@ -94,8 +95,9 @@ public class FtpServer {
             StringBuilder error = new StringBuilder("");
             
             if (type == MsgType.Start.ordinal()) {
-                StartRequest cmd = (StartRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), StartRequest.class); 
-                ctx = FileContext.newFileContext(cmd.getName(), error);
+                StartRequest cmd = (StartRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), StartRequest.class);
+                String filePath = PathUtil.replaceEnvInPath(cmd.getPath());
+                ctx = FileContext.newFileContext(filePath, error);
                 if (ctx == null) {
                     return error.toString();
                 }

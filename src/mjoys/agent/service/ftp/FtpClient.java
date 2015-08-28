@@ -19,67 +19,74 @@ import mjoys.util.ByteUnit;
 import mjoys.util.Logger;
 
 public class FtpClient {
-    private int ftpAgentId;
+    private Address ftpServer;
     private SocketClient socket;
     private AgentSyncRpc agentSyncRpc;
     private byte[] buffer = new byte[ByteUnit.MB];
     private int length = 0;
     private static final Logger logger = new Logger().addPrinter(System.out);
     
-    public void connect(Address ftpAddress, Address agentAddress) {
-        socket = new SocketClient();
-        if (socket.connect(ftpAddress) == false) {
-            return;
-        }
-        
-        agentSyncRpc = new AgentSyncRpc();
-        if (false == agentSyncRpc.start(agentAddress)) {
-            return;
-        }
-
+    public FtpClient(Address ftpAddress, AgentSyncRpc agentRpc) {
+    	this.ftpServer = ftpAddress;
+    	this.agentSyncRpc = agentRpc;
+        this.socket = new SocketClient();
+    }
+    
+    public FtpClient(Address ftpAddress, Address agentAddress) {
+    	this(ftpAddress, new AgentSyncRpc());
+    	this.agentSyncRpc.start(agentAddress);
+    }
+    
+    private int getFtpServerAgentId() {
         GetIdResponse response = agentSyncRpc.getId(new Tag(Agent.PublicTag.servicename.name(), "ftp"));
         if (response == null) {
             logger.log("can't find ftp service");
-            return;
+            return Agent.InvalidId;
         }
         
         if (!response.getError().equals(Agent.Error.Success) || response.getIds().size() != 1) {
             logger.log("can't find ftp service: error=%s", response.getError());
-            return;
+            return Agent.InvalidId;
         }
         
-        ftpAgentId = response.getIds().get(0);
+        return response.getIds().get(0);
     }
-
-    public void upload(String dst, String src) {
-        if (ftpAgentId <= 0) {
-            logger.log("disconnected");
-            return;
-        }
+    
+    public boolean upload(String dst, String src) {
+    	if (this.socket.connect(ftpServer) == false) {
+    		return false;
+    	}
         
         File file = new File(src);
         if (!file.exists()) {
-            return;
+            return false;
         }
         
         if (start(dst) == false) {
-            return;
+            return false;
         }
         
         if (send(file) == false) {
-            return;
+            return false;
         }
         
         if (done(dst) == false) {
-            return;
+            return false;
         }
+        
+        return true;
     }
     
     private boolean start(String dst) {
         StartRequest request = new StartRequest();
         request.setConnectionAddress(this.socket.getLocalAddress().toString());
-        request.setName(dst);
         request.setPath(dst);
+        
+        int ftpAgentId = getFtpServerAgentId();
+        if (ftpAgentId == Agent.InvalidId) {
+        	logger.log("can't find ftp service on agent");
+        	return false;
+        }
         
         FtpResponse response = agentSyncRpc.call(ftpAgentId, MsgType.Start.ordinal(), request, FtpResponse.class);
         logger.log("ftp start response: %s", response.error);
@@ -91,6 +98,12 @@ public class FtpClient {
         EndRequest request = new EndRequest();
         request.setLength(this.length);
         request.setAddress(this.socket.getLocalAddress().toString());
+        
+        int ftpAgentId = getFtpServerAgentId();
+        if (ftpAgentId == Agent.InvalidId) {
+        	logger.log("can't find ftp service on agent");
+        	return false;
+        }
         
         FtpResponse response = agentSyncRpc.call(ftpAgentId, MsgType.End.ordinal(), request, FtpResponse.class);
         logger.log("ftp done response: %s", response.error);
