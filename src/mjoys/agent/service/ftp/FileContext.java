@@ -21,8 +21,14 @@ public class FileContext {
         FileContext ctx = new FileContext();
         ctx.file = new File(fname);
         if (ctx.file.exists()) {
-            error.append("file exists:" + fname);
-            return null;
+            ctx.file.delete();
+        }
+        
+        try{
+        	ctx.file.createNewFile();
+        } catch(IOException e) {
+        	error.append("create file exception:" + e.getMessage());
+        	return null;
         }
         
         try {
