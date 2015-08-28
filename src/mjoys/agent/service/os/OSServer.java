@@ -111,15 +111,8 @@ public class OSServer {
 		
 		private RunTaskResponse runTask(RunTaskRequest request) {
 			RunTaskResponse response = new RunTaskResponse();
-			String jobHome = System.getenv("$NETPIPE_HOME");
-			if (jobHome == null || jobHome.isEmpty()) {
-				response.error = "can't get job home directory";
-				logger.log(response.error);
-				return response;
-			}
 			
-			String jarPath = PathUtil.combine(jobHome, "jobs", request.jobName + ".jar");
-			SystemUtil.run(String.format("java -jar %s %d", jarPath, request.taskId));
+			String result = SystemUtil.run(String.format("/usr/bin/bash runtask.sh %s %s %d", request.jobName, request.taskName, request.taskId));
 			
 			response.pid = SystemUtil.getPidByJps(request.taskName + "Main");
 			response.error = "";
