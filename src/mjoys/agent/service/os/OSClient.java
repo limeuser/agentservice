@@ -2,7 +2,6 @@ package mjoys.agent.service.os;
 
 import mjoys.agent.client.AgentSyncRpc;
 import mjoys.agent.service.os.msg.*;
-import mjoys.agent.service.os.msg.Error;
 import mjoys.util.Address;
 import mjoys.util.Logger;
 
@@ -18,7 +17,7 @@ public class OSClient {
 		AllocatePortRequest request = new AllocatePortRequest();
 		request.protocol = protocol;
 		AllocatePortResponse response = rpc.call(serviceId, MsgType.AllocatePort.ordinal(), request, AllocatePortResponse.class);
-		if (response == null || response.error != Error.Success) {
+		if (response == null || response.error != mjoys.agent.service.os.msg.Error.Success) {
 			logger.log("allocate port failed");
 			return -1;
 		} else {
@@ -33,7 +32,7 @@ public class OSClient {
 		request.protocol = protocol;
 		request.port = port;
 		FreePortResponse response = rpc.call(serviceId, MsgType.FreePort.ordinal(), request, FreePortResponse.class);
-		if (response == null || response.error != Error.Success) {
+		if (response == null || response.error != mjoys.agent.service.os.msg.Error.Success) {
 			logger.log("free port failed:%d", port);
 			return false;
 		} else {
