@@ -134,7 +134,7 @@ public class Tester {
     		dstFile.delete();
     	}
     	
-    	client.upload(dstFile.getAbsolutePath(), srcFile.getAbsolutePath());
+    	client.upload(PathUtil.combine("$NETPIPE_HOME", "jobs", fileName), srcFile.getAbsolutePath());
     	
     	dstFile = new File(dstDir, fileName);
     	

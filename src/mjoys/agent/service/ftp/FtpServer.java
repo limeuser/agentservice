@@ -96,7 +96,9 @@ public class FtpServer {
             
             if (type == MsgType.Start.ordinal()) {
                 StartRequest cmd = (StartRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), StartRequest.class);
+                logger.log("process cmd:%s", cmd.toString());
                 String filePath = PathUtil.replaceEnvInPath(cmd.getPath());
+                logger.log("dst file:%s", filePath);
                 ctx = FileContext.newFileContext(filePath, error);
                 if (ctx == null) {
                     return error.toString();
