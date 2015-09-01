@@ -120,7 +120,7 @@ public class FtpServer {
 	                // received all file data
                 	ctx.setExpectedRecvLength(cmd.getLength());
 	                if (cmd.getLength() == ctx.getRecvLength()) {
-	                	conn.getSocket().close();
+	                	server.disconnect(cmd.getAddress());
 	                } else {
 	                	conn.getSocket().setSoTimeout(5 * TimeUnit.Second);
 	                }
