@@ -1,5 +1,7 @@
 package mjoys.agent.service.ftp.msg;
 
+import mjoys.util.Formater;
+
 public class EndRequest {
     private String address;
     private int length;
@@ -18,5 +20,10 @@ public class EndRequest {
 
 	public void setLength(int length) {
 		this.length = length;
+	}
+	
+	@Override
+	public String toString() {
+		return Formater.formatEntries("length", length, "address", address);
 	}
 }
