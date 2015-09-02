@@ -96,9 +96,8 @@ public class FtpServer {
             
             if (type == MsgType.Start.ordinal()) {
                 StartRequest cmd = (StartRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), StartRequest.class);
-                logger.log("process cmd:%s", cmd.toString());
                 String filePath = PathUtil.replaceEnvInPath(cmd.getPath());
-                logger.log("dst file:%s", filePath);
+                logger.log("process start cmd:%s, dst=%s", cmd.toString(), filePath);
                 ctx = FileContext.newFileContext(filePath, error);
                 if (ctx == null) {
                     return error.toString();
@@ -110,7 +109,7 @@ public class FtpServer {
                 EndRequest cmd = (EndRequest) rpc.getSerializer().decode(new ByteBufferInputStream(frame.body), EndRequest.class);
                 ClientConnection<FileContext> conn= server.getConnection(cmd.getAddress());
                 ctx = conn.getContext();
-                
+                logger.log("process end cmd:%s", cmd.toString());
                 if (ctx == null) {
                     error.append("can't find connection: address=" + cmd.getAddress());
                     return error.toString();

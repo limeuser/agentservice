@@ -56,9 +56,15 @@ public class FtpClient {
     	if (this.socket.connect(ftpServer) == false) {
     		return false;
     	}
+    	
+    	try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+		}
         
         File file = new File(src);
         if (!file.exists()) {
+        	logger.log("%s don't exist", src);
             return false;
         }
         
