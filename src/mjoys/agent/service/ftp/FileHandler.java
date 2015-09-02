@@ -4,8 +4,10 @@ import java.io.IOException;
 
 import mjoys.socket.tcp.server.ClientConnection;
 import mjoys.socket.tcp.server.ClientConnectionHandler;
+import mjoys.util.Logger;
 
 public class FileHandler implements ClientConnectionHandler<FileContext> {
+	private static final Logger logger = new Logger().addPrinter(System.out);
     @Override
     public int handle(ClientConnection<FileContext> connection) {
         FileContext ctx = connection.getContext();
@@ -26,6 +28,7 @@ public class FileHandler implements ClientConnectionHandler<FileContext> {
         	return length;
         } catch (IOException e) {
         	ctx.done();
+        	logger.log("recv file exception:", e);
         	return -1;
         }
     }
