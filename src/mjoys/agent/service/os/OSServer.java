@@ -9,8 +9,14 @@ import mjoys.agent.Agent;
 import mjoys.agent.Response;
 import mjoys.agent.client.AgentAsynRpc;
 import mjoys.agent.client.AgentRpcHandler;
-import mjoys.agent.service.os.msg.*;
+import mjoys.agent.service.os.msg.AllocatePortRequest;
+import mjoys.agent.service.os.msg.AllocatePortResponse;
 import mjoys.agent.service.os.msg.Error;
+import mjoys.agent.service.os.msg.FreePortRequest;
+import mjoys.agent.service.os.msg.FreePortResponse;
+import mjoys.agent.service.os.msg.MsgType;
+import mjoys.agent.service.os.msg.RunTaskRequest;
+import mjoys.agent.service.os.msg.RunTaskResponse;
 import mjoys.agent.util.Tag;
 import mjoys.frame.TLV;
 import mjoys.frame.TV;
@@ -18,7 +24,6 @@ import mjoys.io.ByteBufferInputStream;
 import mjoys.io.SerializerException;
 import mjoys.util.Address;
 import mjoys.util.Logger;
-import mjoys.util.PathUtil;
 import mjoys.util.StringUtil;
 import mjoys.util.SystemUtil;
 
@@ -33,8 +38,10 @@ public class OSServer {
 			return;
 		}
 		
-		for (int i = 1000; i < 2000; i++) 
-			idleTcpPort.add(1);
+		for (int i = 2000; i < 3000; i++) {
+			idleTcpPort.add(i);
+		}
+		
 		rpc.setTag(new Tag(Agent.PublicTag.servicename.name(), "os"));
 	}
 	
