@@ -5,6 +5,7 @@ import mjoys.util.Formater;
 
 public class Main {
 	public static void main(String[] args) {
+		/*
 		System.out.println(String.format("args: %s", Formater.formatArray(args)));
 		if (args.length != 1) {
 			System.out.println("please set agent address, for example: tcp://192.168.1.103:6500");
@@ -16,8 +17,9 @@ public class Main {
 			System.out.println("bad agent address, for example: tcp://192.168.1.103:6500");
 			return;
 		}
+		*/
 		
 		OSServer server = new OSServer();
-		server.start(agentAddress);
+		server.start(Address.parse("tcp://127.0.0.1:6500"));
 	}
 }
